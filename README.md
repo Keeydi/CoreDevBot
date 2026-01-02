@@ -68,8 +68,10 @@ npm start
 
 ### 5. Deploy for 24/7 Uptime
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed hosting options including:
-- **Railway** (Recommended - Easy & Free)
+**🚂 Railway (Recommended):** See [RAILWAY_SETUP.md](./RAILWAY_SETUP.md) for complete Railway deployment guide
+
+**Other Options:** See [DEPLOYMENT.md](./DEPLOYMENT.md) for other hosting options:
+- **Railway** (⭐ Recommended - Easy & Free)
 - **Render** (Free tier available)
 - **Fly.io** (Good free tier)
 - **DigitalOcean** (Paid but reliable)

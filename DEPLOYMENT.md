@@ -21,19 +21,24 @@ Before deploying, make sure you have:
 - Automatic deployments from GitHub
 - Built-in environment variables
 - Great for beginners
+- Auto-detects Node.js projects
 
 **Steps:**
-1. Go to [railway.app](https://railway.app)
-2. Sign up with GitHub
-3. Click "New Project" → "Deploy from GitHub repo"
-4. Select your repository
-5. Add environment variables in the "Variables" tab:
+1. Push your code to GitHub
+2. Go to [railway.app](https://railway.app)
+3. Sign up with GitHub
+4. Click "New Project" → "Deploy from GitHub repo"
+5. Select your repository
+6. Railway auto-detects Node.js and starts building
+7. Add environment variables in the "Variables" tab:
    - `DISCORD_BOT_TOKEN`
    - `AUTO_ROLE_ID`
    - `TICKET_CATEGORY_ID`
    - `SUPPORT_ROLE_ID`
    - `TRANSCRIPT_CATEGORY_ID`
-6. Railway will auto-detect Node.js and run `npm start`
+8. Railway automatically runs `npm start`
+
+**📖 Detailed Guide:** See [RAILWAY_SETUP.md](./RAILWAY_SETUP.md) for complete step-by-step instructions
 
 **Cost:** Free tier available ($5 credit/month)
 
