@@ -348,20 +348,36 @@ async function closeTicketChannel(channel, member) {
  */
 async function countOpenTickets(guild, categoryId) {
     try {
-        const category = guild.channels.cache.get(categoryId);
-        if (!category) return 0;
-
-        // Get all text channels in the category that match Inquire-XXX pattern
-        const channels = category.children.cache.filter(
+        // Refresh the channels cache to ensure we have the latest data
+        await guild.channels.fetch();
+        
+        // Count all channels in the guild that:
+        // 1. Are in the specified category (parentId matches)
+        // 2. Are text channels
+        // 3. Match the Inquire-XXX pattern
+        const ticketChannels = guild.channels.cache.filter(
             channel => 
+                channel.parentId === categoryId &&
                 channel.type === ChannelType.GuildText &&
-                /^Inquire-\d+$/i.test(channel.name)
+                /^inquire-\d+$/i.test(channel.name)
         );
 
-        return channels.size;
+        return ticketChannels.size;
     } catch (error) {
         console.error('Error counting open tickets:', error);
-        return 0;
+        // Fallback: try with existing cache
+        try {
+            const ticketChannels = guild.channels.cache.filter(
+                channel => 
+                    channel.parentId === categoryId &&
+                    channel.type === ChannelType.GuildText &&
+                    /^inquire-\d+$/i.test(channel.name)
+            );
+            return ticketChannels.size;
+        } catch (fallbackError) {
+            console.error('Error in fallback ticket count:', fallbackError);
+            return 0;
+        }
     }
 }
 
