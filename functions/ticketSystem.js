@@ -3,13 +3,12 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * Get the next ticket number for a user
+ * Get the next ticket number
  * @param {Guild} guild - The Discord guild
  * @param {string} categoryId - The category ID
- * @param {string} username - The username (cleaned)
  * @returns {number} The next ticket number
  */
-async function getNextTicketNumber(guild, categoryId, username) {
+async function getNextTicketNumber(guild, categoryId) {
     try {
         // Fetch all channels in the category
         const category = guild.channels.cache.get(categoryId);
@@ -20,8 +19,8 @@ async function getNextTicketNumber(guild, categoryId, username) {
             channel => channel.type === ChannelType.GuildText
         );
 
-        // Pattern: Support-username-XXX
-        const pattern = new RegExp(`^Support-${username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-(\\d+)$`, 'i');
+        // Pattern: Inquire-XXX
+        const pattern = /^Inquire-(\d+)$/i;
         
         let maxNumber = 0;
         
@@ -57,34 +56,12 @@ async function createTicketChannel(member, categoryId, supportId) {
             throw new Error(`Category with ID ${categoryId} not found`);
         }
 
-        // Clean username for channel name (Discord channel names have restrictions)
-        const cleanUsername = member.user.username
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, '-')
-            .substring(0, 20); // Limit length
-
-        // Check if user already has an open ticket
-        const existingTicket = guild.channels.cache.find(
-            channel => 
-                channel.parentId === categoryId &&
-                channel.name.startsWith(`Support-${cleanUsername}-`) &&
-                channel.type === ChannelType.GuildText
-        );
-
-        if (existingTicket) {
-            return {
-                success: false,
-                message: `You already have an open ticket: ${existingTicket}`,
-                channel: existingTicket
-            };
-        }
-
         // Get next ticket number
-        const ticketNumber = await getNextTicketNumber(guild, categoryId, cleanUsername);
+        const ticketNumber = await getNextTicketNumber(guild, categoryId);
         const ticketNumberFormatted = String(ticketNumber).padStart(3, '0'); // 001, 002, etc.
 
-        // Create the channel with format: Support-username-001
-        const channelName = `Support-${cleanUsername}-${ticketNumberFormatted}`;
+        // Create the channel with format: Inquire-001
+        const channelName = `Inquire-${ticketNumberFormatted}`;
         
         const ticketChannel = await guild.channels.create({
             name: channelName,
@@ -126,9 +103,9 @@ async function createTicketChannel(member, categoryId, supportId) {
 
         // Send modern welcome message in the ticket with close button
         const welcomeEmbed = new EmbedBuilder()
-            .setTitle('🎫 Support Ticket Created')
+            .setTitle('🎫 Inquire Ticket Created')
             .setDescription(
-                `Hello ${member}, welcome to your **CoreDev Studio** support ticket!\n\n` +
+                `Hello ${member}, welcome to your **CoreDev Studio** inquire ticket!\n\n` +
                 `**What happens next?**\n` +
                 `• Please describe your issue, question, or concern in detail\n` +
                 `• Our support team will respond as soon as possible\n` +
@@ -336,7 +313,7 @@ async function closeTicketChannel(channel, member) {
                 `This ticket is being closed by ${member}\n\n` +
                 (transcriptChannel ? `📄 **Transcript saved:** ${transcriptChannel}\n\n` : '') +
                 `**The channel will be deleted in 5 seconds...**\n\n` +
-                `Thank you for using **CoreDev Studio** support!`
+                `Thank you for using **CoreDev Studio** inquire!`
             )
             .setColor(0xFF6B6B)
             .setFooter({ text: 'CoreDev Studio' })
@@ -363,10 +340,36 @@ async function closeTicketChannel(channel, member) {
     }
 }
 
+/**
+ * Count open tickets in a category
+ * @param {Guild} guild - The Discord guild
+ * @param {string} categoryId - The category ID
+ * @returns {number} The number of open tickets
+ */
+async function countOpenTickets(guild, categoryId) {
+    try {
+        const category = guild.channels.cache.get(categoryId);
+        if (!category) return 0;
+
+        // Get all text channels in the category that match Inquire-XXX pattern
+        const channels = category.children.cache.filter(
+            channel => 
+                channel.type === ChannelType.GuildText &&
+                /^Inquire-\d+$/i.test(channel.name)
+        );
+
+        return channels.size;
+    } catch (error) {
+        console.error('Error counting open tickets:', error);
+        return 0;
+    }
+}
+
 module.exports = {
     createTicketChannel,
     closeTicketChannel,
     generateTranscript,
     saveTranscript,
+    countOpenTickets,
 };
 

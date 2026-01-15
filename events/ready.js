@@ -1,5 +1,6 @@
 const { Events } = require('discord.js');
 const { registerCommands } = require('../utils/loadCommands');
+const { countOpenTickets } = require('../functions/ticketSystem');
 
 module.exports = {
     name: Events.ClientReady,
@@ -11,6 +12,22 @@ module.exports = {
         
         // Register slash commands
         await registerCommands(client);
+
+        // Set initial bot status
+        try {
+            const categoryId = process.env.TICKET_CATEGORY_ID || '1456583891568558142';
+            const guild = client.guilds.cache.first();
+            if (guild) {
+                const openTickets = await countOpenTickets(guild, categoryId);
+                const statusText = openTickets === 1 
+                    ? `1 Inquire Ticket` 
+                    : `${openTickets} Inquire Tickets`;
+                await client.user.setActivity(statusText, { type: 3 }); // type 3 = WATCHING
+                console.log(`📊 Bot status set to: Watching ${statusText}`);
+            }
+        } catch (error) {
+            console.error('Error setting bot status:', error);
+        }
     },
 };
 

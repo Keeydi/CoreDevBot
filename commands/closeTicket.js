@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { closeTicketChannel } = require('../functions/ticketSystem');
+const { closeTicketChannel, countOpenTickets } = require('../functions/ticketSystem');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -9,7 +9,7 @@ module.exports = {
         const channel = interaction.channel;
         
         // Check if this is a ticket channel (Discord channel names are lowercase)
-        if (!channel.name.startsWith('support-')) {
+        if (!channel.name.toLowerCase().startsWith('inquire-')) {
             return await interaction.reply({
                 content: '❌ This command can only be used in ticket channels.',
                 ephemeral: true,
@@ -24,21 +24,13 @@ module.exports = {
         const memberOverwrite = channel.permissionOverwrites.cache.get(member.id);
         const isTicketCreator = memberOverwrite?.allow.has('ViewChannel') || false;
         
-        // Also check by username in channel name as backup
-        const cleanUsername = member.user.username
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, '-')
-            .substring(0, 20);
-        const channelNameLower = channel.name.toLowerCase();
-        const isTicketCreatorByName = channelNameLower.startsWith(`support-${cleanUsername}-`);
-        
         // Check support role/admin
         const supportRoleId = process.env.SUPPORT_ROLE_ID || '1411885432702111767';
         const hasSupportRole = member.roles.cache.has(supportRoleId) || 
                               member.permissions.has('Administrator');
         
         // User can close if they're the ticket creator OR have support role/admin
-        const canClose = isTicketCreator || isTicketCreatorByName || hasSupportRole;
+        const canClose = isTicketCreator || hasSupportRole;
 
         if (!canClose) {
             return await interaction.reply({
@@ -59,6 +51,13 @@ module.exports = {
                     ephemeral: true,
                 });
             }
+            // Update bot status after ticket closure
+            const categoryId = process.env.TICKET_CATEGORY_ID || '1456583891568558142';
+            const openTickets = await countOpenTickets(channel.guild, categoryId);
+            const statusText = openTickets === 1 
+                ? `1 Inquire Ticket` 
+                : `${openTickets} Inquire Tickets`;
+            await interaction.client.user.setActivity(statusText, { type: 3 }); // type 3 = WATCHING
         } catch (error) {
             console.error('Error closing ticket:', error);
             await interaction.followUp({

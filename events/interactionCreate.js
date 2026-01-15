@@ -1,13 +1,33 @@
 const { Events } = require('discord.js');
-const { createTicketChannel } = require('../functions/ticketSystem');
+const { createTicketChannel, countOpenTickets } = require('../functions/ticketSystem');
+
+// Function to update bot status
+async function updateBotStatus(client) {
+    try {
+        const categoryId = process.env.TICKET_CATEGORY_ID || '1456583891568558142';
+        
+        // Get the first guild (or iterate through all if needed)
+        const guild = client.guilds.cache.first();
+        if (!guild) return;
+
+        const openTickets = await countOpenTickets(guild, categoryId);
+        const statusText = openTickets === 1 
+            ? `1 Inquire Ticket` 
+            : `${openTickets} Inquire Tickets`;
+
+        await client.user.setActivity(statusText, { type: 3 }); // type 3 = WATCHING
+    } catch (error) {
+        console.error('Error updating bot status:', error);
+    }
+}
 
 module.exports = {
     name: Events.InteractionCreate,
     async execute(interaction) {
         // Handle button interactions
         if (interaction.isButton()) {
-            // Support Ticket button
-            if (interaction.customId === 'create_support_ticket') {
+            // Helper function to create tickets
+            const handleTicketCreation = async (customId) => {
                 await interaction.deferReply({ ephemeral: true });
 
                 try {
@@ -24,6 +44,8 @@ module.exports = {
                         await interaction.editReply({
                             content: `✅ ${result.message}`,
                         });
+                        // Update bot status after ticket creation
+                        await updateBotStatus(interaction.client);
                     } else {
                         await interaction.editReply({
                             content: `⚠️ ${result.message}`,
@@ -35,14 +57,21 @@ module.exports = {
                         content: '❌ An error occurred while creating your ticket. Please try again later.',
                     });
                 }
+            };
+
+            // Inquire Ticket button
+            if (interaction.customId === 'create_inquire_ticket') {
+                await handleTicketCreation('create_inquire_ticket');
             }
 
-            // Ban Appeal button (placeholder for future implementation)
-            if (interaction.customId === 'create_ban_appeal') {
-                await interaction.reply({
-                    content: '🚫 Ban Appeal functionality coming soon!',
-                    ephemeral: true,
-                });
+            // Buy Ticket button
+            if (interaction.customId === 'create_buy_ticket') {
+                await handleTicketCreation('create_buy_ticket');
+            }
+
+            // Support Ticket button
+            if (interaction.customId === 'create_support_ticket') {
+                await handleTicketCreation('create_support_ticket');
             }
 
             // Close Ticket button
@@ -50,7 +79,7 @@ module.exports = {
                 const channel = interaction.channel;
                 
                 // Check if this is a ticket channel (Discord channel names are lowercase)
-                if (!channel.name.startsWith('support-')) {
+                if (!channel.name.toLowerCase().startsWith('inquire-')) {
                     return await interaction.reply({
                         content: '❌ This button can only be used in ticket channels.',
                         ephemeral: true,
@@ -65,21 +94,13 @@ module.exports = {
                 const memberOverwrite = channel.permissionOverwrites.cache.get(member.id);
                 const isTicketCreator = memberOverwrite?.allow.has('ViewChannel') || false;
                 
-                // Also check by username in channel name as backup
-                const cleanUsername = member.user.username
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]/g, '-')
-                    .substring(0, 20);
-                const channelNameLower = channel.name.toLowerCase();
-                const isTicketCreatorByName = channelNameLower.startsWith(`support-${cleanUsername}-`);
-                
                 // Check support role/admin
                 const supportRoleId = process.env.SUPPORT_ROLE_ID || '1411885432702111767';
                 const hasSupportRole = member.roles.cache.has(supportRoleId) || 
                                       member.permissions.has('Administrator');
                 
                 // User can close if they're the ticket creator OR have support role/admin
-                const canClose = isTicketCreator || isTicketCreatorByName || hasSupportRole;
+                const canClose = isTicketCreator || hasSupportRole;
 
                 if (!canClose) {
                     return await interaction.reply({
@@ -97,6 +118,8 @@ module.exports = {
                     await interaction.editReply({
                         content: `✅ ${result.message}${result.transcriptChannel ? `\n📄 Transcript saved to ${result.transcriptChannel}` : ''}`,
                     });
+                    // Update bot status after ticket closure
+                    await updateBotStatus(interaction.client);
                 } catch (error) {
                     console.error('Error closing ticket:', error);
                     await interaction.editReply({

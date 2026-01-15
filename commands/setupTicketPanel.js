@@ -24,13 +24,18 @@ module.exports = {
             )
             .addFields(
                 {
-                    name: '🔧 Support Ticket',
+                    name: '❓ Inquire',
                     value: 'Get help with technical issues, questions, or general inquiries. Our team will assist you promptly.',
                     inline: false,
                 },
                 {
-                    name: '🚫 Ban Appeal',
-                    value: 'If you believe you were banned unfairly, submit an appeal and our moderation team will review your case.',
+                    name: '🛒 Buy',
+                    value: 'Interested in purchasing our services or products? Click here to get started.',
+                    inline: false,
+                },
+                {
+                    name: '🔧 Support',
+                    value: 'Need technical support or have a specific issue? Our support team is ready to help.',
                     inline: false,
                 }
             )
@@ -47,15 +52,20 @@ module.exports = {
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setCustomId('create_support_ticket')
-                    .setLabel('Create Support Ticket')
+                    .setCustomId('create_inquire_ticket')
+                    .setLabel('Inquire')
                     .setStyle(ButtonStyle.Primary)
-                    .setEmoji('🔧'),
+                    .setEmoji('❓'),
                 new ButtonBuilder()
-                    .setCustomId('create_ban_appeal')
-                    .setLabel('Submit Ban Appeal')
-                    .setStyle(ButtonStyle.Danger)
-                    .setEmoji('🚫')
+                    .setCustomId('create_buy_ticket')
+                    .setLabel('Buy')
+                    .setStyle(ButtonStyle.Success)
+                    .setEmoji('🛒'),
+                new ButtonBuilder()
+                    .setCustomId('create_support_ticket')
+                    .setLabel('Support')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setEmoji('🔧')
             );
 
         await interaction.reply({
